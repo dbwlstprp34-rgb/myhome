@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>얄라리 얄라 인터랙티브 게임</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Harmony -->
+    <!-- Application Structure Plan: 이 애플리케이션은 단일 화면 인터페이스를 사용하여 '얄라리 얄라' 게임 경험을 중앙 집중화합니다. 사용자는 먼저 상단의 버튼을 통해 난이도(문장)를 선택합니다. 선택이 완료되면, '게임 보드' 영역이 해당 문장에 대한 게임 흐름(암기 -> 도전)을 순차적으로 안내합니다. 이 구조는 선형적인 PPT 방식에서 벗어나 사용자가 원하는 단계를 언제든지 다시 시작하거나 선택할 수 있게 하여 유연성과 재사용성을 높였습니다. 하단에는 게임의 보조 요소인 '특별 기회 카드'를 배치하여, 게임 진행 중 시각적으로 사용 여부를 추적할 수 있도록 했습니다. 확장된 '게임 설정' 기능은 문장, 암기 시간, 기회 횟수, 칭찬 기록 등 게임의 핵심 요소를 사용자가 직접 커스터마이징할 수 있게 하여 반복 플레이의 가치를 극대화합니다. -->
+    <!-- Visualization & Content Choices: 
+        - 보고서 정보: 게임 규칙 -> 목표: 정보 제공 -> 표현 방식: 접기/펴기(아코디언) UI -> 상호작용: 클릭 -> 정당화: 평소에는 숨겨두어 화면을 깔끔하게 유지하고, 필요할 때만 규칙을 확인할 수 있도록 하여 사용성을 개선했습니다.
+        - 보고서 정보: 각 단계별 문장 -> 목표: 게임 콘텐츠 선택 -> 표현 방식: 단계별 버튼 그룹 -> 상호작용: 클릭 -> 정당화: 드롭다운 메뉴보다 각 단계를 한눈에 파악하고 선택하기 쉬우며, 현재 선택된 단계를 시각적으로 명확히 표시할 수 있습니다.
+        - 보고서 정보: 문장 암기 시간 -> 목표: 긴장감 및 시간 제한 부여 -> 표현 방식: 동적인 카운트다운 타이머 텍스트 -> 상호작용: 자동 시작 -> 정당화: 정적인 시간 안내보다 훨씬 더 게임에 몰입하게 만들고 재미 요소를 더합니다.
+        - 보고서 정보: 순서대로 단어 말하기 -> 목표: 게임 진행 촉진 -> 표현 방식: '클릭하여 단어 확인' 버튼 그리드 -> 상호작용: 개별 버튼 클릭 -> 정당화: 기존의 순차적 단어 공개 방식에서 벗어나, 사용자가 원하는 순서대로 각 단어의 정답을 확인할 수 있는 인터랙티브한 경험을 제공합니다. 이는 실제 게임 진행 상황과 유사한 경험을 만들어줍니다.
+        - 보고서 정보: 특별 기회 카드 -> 목표: 게임 상태 추적 -> 표현 방식: 사용 횟수가 표시된 버튼 -> 상호작용: 클릭 시 사용 처리 및 비활성화 -> 정당화: 게임의 부가 규칙을 명확한 인터페이스로 제공하여 진행자가 쉽게 관리할 수 있도록 돕습니다.
+        - 추가 기능: 문장, 기회 횟수, 암기 시간, 칭찬 기록 수정 -> 목표: 사용자 맞춤 설정 -> 표현 방식: 설정 패널 내 다양한 입력 필드(텍스트, 숫자, 텍스트 영역) -> 상호작용: 입력 및 저장 -> 정당화: 게임 데이터를 동적으로 변경할 수 있게 하여 교육적 목적이나 재미를 위해 콘텐츠를 자유롭게 수정할 수 있는 확장성을 제공합니다. 라이브러리: 순수 JavaScript 및 Tailwind CSS. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #FDF6E3;
+            color: #654321;
+        }
+        .btn {
+            @apply px-6 py-3 rounded-lg font-bold text-white transition-transform duration-200 transform hover:scale-105 shadow-md;
+        }
+        .btn-primary {
+            @apply bg-amber-500 hover:bg-amber-600;
+        }
+        .btn-secondary {
+            @apply bg-orange-500 hover:bg-orange-600;
+        }
+        .btn-accent {
+            @apply bg-lime-600 hover:bg-lime-700;
+        }
+        .btn-disabled {
+            @apply bg-gray-400 cursor-not-allowed hover:scale-100;
+        }
+        .card {
+            @apply bg-white/70 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-lg border border-amber-200;
+        }
+        .active-level {
+            @apply ring-4 ring-orange-400 scale-110;
+        }
+        .form-input {
+            @apply w-full p-2 border border-amber-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white/50;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-4xl mx-auto space-y-6">
+        
+        <header class="text-center">
+            <h1 class="text-4xl sm:text-5xl font-extrabold text-amber-800">🥳 얄라리 얄라 게임 🥳</h1>
+        </header>
+
+        <main class="space-y-6">
+            <div id="setup" class="card">
+                <div id="instructions-container" class="mb-6">
+                    <button id="toggle-instructions" class="w-full text-left font-bold text-lg text-amber-700 flex justify-between items-center">
+                        <span>📜 게임 방법을 알아볼까요?</span>
+                        <span id="instruction-arrow">▼</span>
+                    </button>
+                    <div id="instructions" class="hidden mt-4 space-y-2 text-amber-900/80">
+                        <p>1. **문장 외우기:** 화면에 보이는 문장을 정해진 시간 동안 다 함께 외워요.</p>
+                        <p>2. **한 단어씩 말하기:** 첫 사람부터 순서대로 띄어쓰기에 맞춰 한 단어씩 정확하게 말해요. (문장 끝 "얄라리 얄라"까지!)</p>
+                        <p>3. **성공과 탈락:** 문장을 틀리지 않고 끝까지 말했다면, 마지막 '얄라'를 외친 사람의 다음 사람이 탈락합니다. 만약 중간에 틀렸다면, 틀린 사람이 바로 탈락합니다.</p>
+                        <p>4. **특별 기회 사용하기:** **통과**와 **반대로** 기회는 설정된 횟수만큼 쓸 수 있어요!</p>
+                    </div>
+                </div>
+
+                <div id="settings-container" class="mb-6">
+                    <button id="toggle-settings" class="w-full text-left font-bold text-lg text-amber-700 flex justify-between items-center">
+                        <span>⚙️ 게임 설정 (문장, 시간, 기회 등 수정)</span>
+                        <span id="settings-arrow">▼</span>
+                    </button>
+                    <div id="settings" class="hidden mt-4 space-y-6 text-amber-900/80">
+                        <div id="sentence-editor" class="space-y-4"></div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="pass-count" class="font-bold">'통과' 기회 횟수</label>
+                                <input type="number" id="pass-count" value="1" min="0" class="form-input mt-1">
+                            </div>
+                            <div>
+                                <label for="reverse-count" class="font-bold">'반대로' 기회 횟수</label>
+                                <input type="number" id="reverse-count" value="1" min="0" class="form-input mt-1">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="scoreboard" class="font-bold">⭐ 칭찬 기록판 (성공한 친구 이름 적기)</label>
+                            <textarea id="scoreboard" rows="3" class="form-input mt-1" placeholder="여기에 성공한 친구들 이름을 적어두세요!"></textarea>
+                        </div>
+                        <button id="save-settings-btn" class="btn btn-accent w-full">설정 저장하기</button>
+                        <p id="save-feedback" class="text-center text-lime-700 font-bold hidden">설정이 저장되었습니다!</p>
+                    </div>
+                </div>
+                
+                <div class="text-center space-y-4 border-t border-amber-200 pt-6">
+                    <h2 class="text-xl font-bold text-amber-800">도전할 문장을 선택하세요!</h2>
+                    <div id="level-selection" class="flex flex-wrap justify-center gap-3 sm:gap-4">
+                        <button class="btn btn-primary" data-level="1">1단계</button>
+                        <button class="btn btn-primary" data-level="2">2단계</button>
+                        <button class="btn btn-primary" data-level="3">3단계</button>
+                        <button class="btn btn-primary" data-level="4">4단계</button>
+                        <button class="btn btn-primary" data-level="5">추가</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="game-board" class="card text-center min-h-[300px] flex flex-col justify-center items-center p-6 transition-opacity duration-500">
+                <div id="initial-message" class="text-amber-700">
+                    <p class="text-2xl font-bold">👆 위에서 단계를 선택하면 게임이 시작됩니다!</p>
+                </div>
+
+                <div id="memorize-phase" class="hidden w-full space-y-4">
+                    <h2 class="text-2xl font-bold text-orange-600">준비! 외울 시간이에요!</h2>
+                    <p id="sentence-to-memorize" class="text-2xl sm:text-3xl font-bold my-4 leading-relaxed"></p>
+                    <div id="timer" class="text-5xl font-bold text-lime-700"></div>
+                    <button id="start-challenge-btn" class="btn btn-secondary hidden">도전 시작!</button>
+                </div>
+
+                <div id="challenge-phase" class="hidden w-full space-y-4">
+                    <h2 class="text-2xl font-bold text-orange-600">도전! 순서대로 확인해보세요!</h2>
+                    <div id="word-checker-container" class="my-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    </div>
+                    <div class="flex flex-wrap justify-center gap-4 mt-6">
+                        <button id="reveal-all-btn" class="btn btn-accent">모두 정답 확인</button>
+                        <button id="reset-game-btn" class="btn btn-primary">다른 단계 선택하기</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="chance-cards" class="card text-center">
+                 <h2 class="text-xl font-bold text-amber-800 mb-4">✨ 특별 기회 카드 ✨</h2>
+                 <div class="flex justify-center gap-4">
+                     <button id="pass-card" class="btn btn-accent w-32"></button>
+                     <button id="reverse-card" class="btn btn-accent w-32"></button>
+                 </div>
+            </div>
+        </main>
+        
+    </div>
+
+    <script>
+        const gameData = [
+            { id: 1, time: 10, sentence: "내가 그린 기린 그림은 잘 그린 기린 그림이다." },
+            { id: 2, time: 10, sentence: "간장 공장 공장장은 강 공장장이고, 된장 공장 공장장은 공 공장장이다." },
+            { id: 3, time: 15, sentence: "경찰청 쇠창살은 외철창살이고 검찰청 쇠창살은 쌍철창살이다." },
+            { id: 4, time: 15, sentence: "들의 콩깍지는 깐 콩깍지인가 안 깐 콩깍지인가." },
+            { id: 5, time: 10, sentence: "저기 가는 저 상장사가 헌 상장사냐 새 상장사냐." }
+        ];
+        const GAME_SUFFIX = "얄라리 얄라";
+
+        let currentLevelData = null;
+        let timerInterval = null;
+        let passChancesTotal = 1;
+        let reverseChancesTotal = 1;
+        let passChancesLeft = 1;
+        let reverseChancesLeft = 1;
+
+        const initialMessage = document.getElementById('initial-message');
+        const memorizePhase = document.getElementById('memorize-phase');
+        const challengePhase = document.getElementById('challenge-phase');
+        
+        const sentenceToMemorize = document.getElementById('sentence-to-memorize');
+        const timerDisplay = document.getElementById('timer');
+        const startChallengeBtn = document.getElementById('start-challenge-btn');
+        
+        const levelButtons = document.querySelectorAll('#level-selection button');
+        const passCard = document.getElementById('pass-card');
+        const reverseCard = document.getElementById('reverse-card');
+        const sentenceEditor = document.getElementById('sentence-editor');
+        const resetGameBtn = document.getElementById('reset-game-btn');
+        const revealAllBtn = document.getElementById('reveal-all-btn');
+
+        function initializeGame() {
+            gameData.forEach(level => {
+                const editorGroup = document.createElement('div');
+                editorGroup.className = "p-4 border border-amber-200 rounded-lg";
+                
+                const label = document.createElement('label');
+                label.htmlFor = `sentence-input-${level.id}`;
+                label.className = "font-bold text-lg";
+                label.textContent = `${level.id === 5 ? '추가' : level.id + '단계'} 문장`;
+                
+                const textarea = document.createElement('textarea');
+                textarea.id = `sentence-input-${level.id}`;
+                textarea.className = 'form-input mt-2';
+                textarea.rows = 2;
+                textarea.value = level.sentence;
+
+                const timeLabel = document.createElement('label');
+                timeLabel.htmlFor = `time-input-${level.id}`;
+                timeLabel.className = "font-bold mt-3 block";
+                timeLabel.textContent = `외우는 시간 (초)`;
+
+                const timeInput = document.createElement('input');
+                timeInput.type = 'number';
+                timeInput.id = `time-input-${level.id}`;
+                timeInput.className = 'form-input mt-1 w-24';
+                timeInput.value = level.time;
+                timeInput.min = "1";
+
+                editorGroup.appendChild(label);
+                editorGroup.appendChild(textarea);
+                editorGroup.appendChild(timeLabel);
+                editorGroup.appendChild(timeInput);
+                sentenceEditor.appendChild(editorGroup);
+            });
+            updateChanceCardsUI();
+        }
+
+        function saveSettings() {
+            gameData.forEach(level => {
+                const textarea = document.getElementById(`sentence-input-${level.id}`);
+                const timeInput = document.getElementById(`time-input-${level.id}`);
+                level.sentence = textarea.value;
+                level.time = parseInt(timeInput.value) || 10;
+            });
+            
+            passChancesTotal = parseInt(document.getElementById('pass-count').value) || 0;
+            reverseChancesTotal = parseInt(document.getElementById('reverse-count').value) || 0;
+            
+            resetChanceCards();
+
+            const feedback = document.getElementById('save-feedback');
+            feedback.classList.remove('hidden');
+            setTimeout(() => {
+                feedback.classList.add('hidden');
+            }, 2000);
+        }
+
+        function updateChanceCardsUI() {
+            passCard.textContent = `통과 (${passChancesLeft}회)`;
+            reverseCard.textContent = `반대로 (${reverseChancesLeft}회)`;
+            passCard.disabled = passChancesLeft <= 0;
+            reverseCard.disabled = reverseChancesLeft <= 0;
+            passCard.classList.toggle('btn-disabled', passCard.disabled);
+            reverseCard.classList.toggle('btn-disabled', reverseCard.disabled);
+        }
+
+        function resetChanceCards() {
+            passChancesLeft = passChancesTotal;
+            reverseChancesLeft = reverseChancesTotal;
+            updateChanceCardsUI();
+        }
+
+        function hideAllPhases() {
+            initialMessage.classList.add('hidden');
+            memorizePhase.classList.add('hidden');
+            challengePhase.classList.add('hidden');
+        }
+
+        function selectLevel(levelId) {
+            clearInterval(timerInterval);
+            currentLevelData = gameData.find(level => level.id === levelId);
+            resetChanceCards();
+
+            levelButtons.forEach(btn => {
+                btn.classList.toggle('active-level', parseInt(btn.dataset.level) === levelId);
+            });
+
+            hideAllPhases();
+            memorizePhase.classList.remove('hidden');
+            
+            const challengeSentence = `${currentLevelData.sentence} ${GAME_SUFFIX}`;
+            currentLevelData.challengeWords = challengeSentence.split(' ').filter(Boolean);
+            
+            sentenceToMemorize.textContent = challengeSentence;
+            startChallengeBtn.classList.add('hidden');
+            
+            let timeLeft = currentLevelData.time;
+            timerDisplay.textContent = timeLeft;
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerDisplay.textContent = "시간 끝!";
+                    startChallengeBtn.classList.remove('hidden');
+                }
+            }, 1000);
+        }
+        
+        function resetGame() {
+            hideAllPhases();
+            initialMessage.classList.remove('hidden');
+            levelButtons.forEach(btn => btn.classList.remove('active-level'));
+            clearInterval(timerInterval);
+            resetChanceCards();
+        }
+
+        function startChallenge() {
+            clearInterval(timerInterval);
+            hideAllPhases();
+            challengePhase.classList.remove('hidden');
+            
+            const wordCheckerContainer = document.getElementById('word-checker-container');
+            wordCheckerContainer.innerHTML = ''; 
+
+            currentLevelData.challengeWords.forEach((word, index) => {
+                const wordButton = document.createElement('button');
+                wordButton.className = 'p-4 rounded-lg font-bold text-amber-800 bg-amber-100 hover:bg-amber-200 transition text-lg';
+                wordButton.textContent = `${index + 1}번째 단어`;
+                wordButton.dataset.answer = word;
+                wordButton.dataset.revealed = 'false';
+
+                wordButton.addEventListener('click', () => {
+                    if (wordButton.dataset.revealed === 'false') {
+                        wordButton.textContent = wordButton.dataset.answer;
+                        wordButton.classList.remove('bg-amber-100', 'hover:bg-amber-200', 'text-amber-800');
+                        wordButton.classList.add('bg-lime-200', 'text-lime-800');
+                        wordButton.dataset.revealed = 'true';
+                    }
+                });
+                wordCheckerContainer.appendChild(wordButton);
+            });
+        }
+        
+        function revealAll() {
+            const wordButtons = document.querySelectorAll('#word-checker-container button');
+            wordButtons.forEach(button => {
+                if (button.dataset.revealed === 'false') {
+                    button.click();
+                }
+            });
+        }
+
+        levelButtons.forEach(button => {
+            button.addEventListener('click', () => selectLevel(parseInt(button.dataset.level)));
+        });
+
+        startChallengeBtn.addEventListener('click', startChallenge);
+        resetGameBtn.addEventListener('click', resetGame);
+        revealAllBtn.addEventListener('click', revealAll);
+        
+        passCard.addEventListener('click', () => {
+            if (passChancesLeft > 0) {
+                passChancesLeft--;
+                updateChanceCardsUI();
+            }
+        });
+        
+        reverseCard.addEventListener('click', () => {
+            if (reverseChancesLeft > 0) {
+                reverseChancesLeft--;
+                updateChanceCardsUI();
+            }
+        });
+
+        function setupCollapsible(toggleId, contentId, arrowId) {
+            const toggle = document.getElementById(toggleId);
+            const content = document.getElementById(contentId);
+            const arrow = document.getElementById(arrowId);
+            toggle.addEventListener('click', () => {
+                content.classList.toggle('hidden');
+                arrow.textContent = content.classList.contains('hidden') ? '▼' : '▲';
+            });
+        }
+        
+        setupCollapsible('toggle-instructions', 'instructions', 'instruction-arrow');
+        setupCollapsible('toggle-settings', 'settings', 'settings-arrow');
+
+        document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
+        document.addEventListener('DOMContentLoaded', initializeGame);
+
+    </script>
+</body>
+</html>
+
+
